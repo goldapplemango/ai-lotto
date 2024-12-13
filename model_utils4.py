@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
 
 # model_utils.py
 
@@ -170,6 +165,28 @@ def evaluate_model(models, X, y):
 # X = data.drop(columns=['target'])  # Feature
 # y = data['target']  # Label
 #
+def dynamic_feature_enginearing(model, X, y, threshold='median'):
+    """
+    동적으로 Feature를 선정/제거하는 함수.
+    Parameters: - X: Feature 데이터셋 - y: 레이블 데이터셋
+    - threshold: Feature 중요도 임계값 ('mean' 또는 'median')
+    Returns: - X_reduced: 선정된 Feature 데이터셋
+    - selected_features: 선택된 Feature 목록
+    """
+    model.fit(X, y)  # 모델 학습 (중요도 평가를 위해)
+    # 피처 중요도 추출
+    feature_importances = model.feature_importances_
+    print(f"피처 중요도: {feature_importances}")
+    # SelectFromModel을 사용하여 중요도가 낮은 피처 제거
+    selector = SelectFromModel(model, threshold='median', prefit=True)
+    X_reduced = selector.transform(X)
+    # 중요도가 높은 피처만 선택
+    selected_features = X.columns[selector.get_support()]
+    print(f"선정된 피처들: {selected_features}")
+
+    df_reduced = pd.DataFrame(X_reduced, columns=selected_features)    
+    return df_reduced
+
 def dynamic_feature_selection(X, y, threshold='median'):
     """
     동적으로 Feature를 선정/제거하는 함수.
@@ -184,18 +201,11 @@ def dynamic_feature_selection(X, y, threshold='median'):
     - selected_features: 선택된 Feature 목록
     """
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X, y)
 
-    # Feature 중요도에 따른 선택
-    selector = SelectFromModel(model, threshold=threshold, prefit=True)
-    X_selected = selector.transform(X)
+    df_reduced = dynamic_feature_enginearing(model, X, y, threshold='median'):
 
-    # 선택된 Feature 목록
-    selected_features = X.columns[selector.get_support()]
-    print(f"선정된 Feature: {selected_features.tolist()}")
-
-    return pd.DataFrame(X_selected, columns=selected_features)
-
+    return df_reduced
+    
 # Feature 선정/제거 실행
 #X_selected = dynamic_feature_selection(X, y)
 
@@ -206,21 +216,8 @@ from sklearn.feature_selection import SelectFromModel
 
 def detect_and_manage_features(model, X, y):
     """피처 중요도를 평가하고, 중요도가 낮은 피처를 제거"""
-    model.fit(X, y)  # 모델 학습 (중요도 평가를 위해)
-
-    # 피처 중요도 추출
-    feature_importances = model.feature_importances_
-    print(f"피처 중요도: {feature_importances}")
-
-    # SelectFromModel을 사용하여 중요도가 낮은 피처 제거
-    selector = SelectFromModel(model, threshold='median', prefit=True)
-    X_reduced = selector.transform(X)
-
-    # 중요도가 높은 피처만 선택
-    selected_features = X.columns[selector.get_support()]
-    print(f"선정된 피처들: {selected_features}")
-
-    return pd.DataFrame(X_reduced, columns=selected_features)
+    df_reduced = dynamic_feature_enginearing(model, X, y, threshold='median'):
+    return df_reduced
 
 def update_version(current_version, performance_improved):
     """성능 개선 시 버전 업데이트"""
